@@ -1,4 +1,4 @@
-#include"code.h"
+#include"encode.h"
 namespace Code
 {
 
@@ -136,13 +136,12 @@ namespace Code
     Mat CodeFrame(FrameType frameType, unsigned char* info, unsigned long tailLen, int PicNum)
     {
         Mat codeMat = Mat(FrameSize, FrameSize, CV_8UC3, Vec3b(255, 255, 255));     //底片为白色
-        if (frameType == FrameType::Start || frameType == FrameType::Normal)
-            //3/1/14:30决定不存朿大长度，朿大长度由朿后一张长庿+BytesPerFrame*张数计算      
+        if (frameType == FrameType::Start || frameType == FrameType::Normal)    
             tailLen = BytesPerFrame;
         BulidQrPoint(codeMat);        //绘制定位码       
         BulidFrameFlag(codeMat, frameType, tailLen);
         BulidPicNum(codeMat, PicNum);
-        if (tailLen != BytesPerFrame)           //编码时整张图都要编码，未确定的是随机敿
+        if (tailLen != BytesPerFrame)           //编码时整张图都要编码，未确定的是随机数
             tailLen = BytesPerFrame;
         int len_CRC = 0;         //用于计算CRC校验码的数据长度
         unsigned char* info_CRC = info;      //用于计算CRC校验码的数据
@@ -252,7 +251,10 @@ namespace Code
         mat.at<Vec3b>(BPatternSize, SafeAreaWidth + 2) = pixel[(PicNum & 1) ? 0 : 7];
         mat.at<Vec3b>(BPatternSize, SafeAreaWidth + 3) = pixel[(PicNum & 1) ? 7 : 0];
     }
-    Mat transform(const Mat& mat)         //切割为96×96
+
+
+    /* 用于切割为96×96的图片 */
+    Mat transform(const Mat& mat)         
     {
         Mat output;
         constexpr int FrameOutputSize = FrameSize - 2 * SafeAreaWidth;
@@ -267,7 +269,8 @@ namespace Code
         }
         return output;
     }
-    //打表求校验码
+
+    /* 打表求CRC校验码 */
     unsigned int crc_ta_8[256] =
     { /* CRC 字节余式表 */
         0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
@@ -303,10 +306,12 @@ namespace Code
         0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
         0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
     };
-    void BuildCRC_16(Mat& mat, unsigned char* info, int len, int area_No)         //CRC-16/CCITT        x16+x12+x5+1 
+
+    /* using：CRC-16/CCITT        x16+x12+x5+1 */ 
+    void BuildCRC_16(Mat& mat, unsigned char* info, int len, int area_No)         
     {
         unsigned short crc = 0;
-        //得到crc
+        /* 计算得到crc */
         while (len-- != 0)
         {
             //unsigned int high = (unsigned int)(crc / 256); //取CRC高8位
@@ -317,7 +322,8 @@ namespace Code
         }
 		crc = ~crc;
   //      printf("%x\n", crc);
-        //写入二维码图像中
+
+        /* 写入二维码图像中 */
         for (int i = 0; i < 16; i++)
         {
             if (area_No == 0)
